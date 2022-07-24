@@ -71,6 +71,30 @@ class Hermes:
         WebDriverWait(self.driver, 10).until(
             EC.element_to_be_clickable(
                 (By.XPATH, xpath))).click()
+    
+    def select_date(self, top_id):
+        # select date
+        try:
+            if WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, f'//*[@id="{top_id}"]'))):
+                date_element = self.driver.find_elements(By.CLASS_NAME, 'mat-calendar-body-cell')
+                for el in date_element:
+                    el_ = Soup(el.get_attribute('innerHTML'), 'html.parser')
+                    if el_.text.strip() == '25':
+                        el.click()
+        except:
+            pass
+
+    def select_time(self, top_id, time_slection):
+        try:
+            # select time
+            if WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, f'//*[@id="{top_id}"]'))):
+                time_element = self.driver.find_elements(By.CLASS_NAME, 'mat-focus-indicator')
+                for el in time_element:
+                    el_ = Soup(el.get_attribute('innerHTML'), 'html.parser')
+                    if el_.text.strip() == time_slection:
+                        el.click()
+        except:
+            pass
 
     def get_page_source(self):
         # try:
@@ -79,7 +103,7 @@ class Hermes:
 
         time.sleep(5)
 
-        # FROM SET
+        # FROM SET (ORIGIN SELECTION)
         # select from enter button
         self.btn_clicks('//*[@id="mat-input-1"]')
         # # enter origin in text field
@@ -89,81 +113,37 @@ class Hermes:
             self.btn_clicks('//*[@id="cdk-overlay-9"]/div/div[1]/ds-place-select-list/div/ul/li[2]')
         except:
             self.btn_clicks('//*[@id="cdk-overlay-0"]/div/div[1]/ds-place-select-list/div/ul/li[2]')
+        # select origin date
+        self.select_date('cdk-overlay-1')
+        #select origin time
+        self.select_time('mat-select-0-panel', '12:30')
 
-        if WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, '//*[@id="cdk-overlay-1"]'))):
-            # select date
-            date_element = self.driver.find_elements(By.CLASS_NAME, 'mat-calendar-body-cell mat-focus-indicator ng-star-inserted')
-            for el in date_element:
-                el_ = el.get_attribute('innerHTML')
-                print(el_)
-                if el_ == '23':
-                    el.click()
-                    
+        # DROP SET (DESTINATION SELECTION)
+        
+        # select destination date
+        self.select_date('cdk-overlay-3')
+        # # select destination time
+        self.select_time('cdk-overlay-4', '14:00')
 
-        # 'mat-calendar-body-cell-content'
+        time.sleep(5)
+        # select from enter button
+        self.btn_clicks('//*[@id="mat-input-3"]')
 
-        # # DESTINATION SET
-        # # select going to button
-        # WebDriverWait(self.driver, 15).until(
-        #     EC.element_to_be_clickable(
-        #         (By.XPATH, '//*[@id="location-field-leg1-destination-menu"]/div[1]/div[1]/button'))).click()
-        # # enter destination
-        # self.driver.find_element_by_id("location-field-leg1-destination").send_keys(DESTINATION_CODE)
-        # time.sleep(3)
-        # # enter first in search
-        # WebDriverWait(self.driver, 15).until(
-        #     EC.element_to_be_clickable(
-        #         (By.XPATH, '//*[@id="location-field-leg1-destination-menu"]/div[2]/div[2]/ul/li[1]'))).click()
+        # enter destination in text field
+        self.driver.find_element(By.XPATH, '//*[@id="mat-input-3"]').send_keys("brasil")
+        # select first in search
+        try:
+            self.btn_clicks('//*[@id="cdk-overlay-4"]/div/div[1]/ds-place-select-list/div/ul/li[2]')
+        except:
+            self.btn_clicks('//*[@id="cdk-overlay-5"]/div/div[1]/ds-place-select-list/div/ul/li[2]')
 
-        # # SET DATE
-
-        # date_click = ActionChains(self.driver)
-        # # print('click search... :D')
-        # date_click.click(
-        #     self.driver.find_element_by_xpath('//*[@id="d1-btn"]')).perform()
-        # time.sleep(1)
-        # date_element = self.driver.find_elements_by_class_name('mat-calendar-table')
-        # for el in date_element:
-        #     el_ = el.get_attribute('innerHTML')
-        #     # try:
-        #     # btn_date = el_.split('aria-label="')[1].split('"')[0].replace(', date disabled', '')
-        #     # btn_date = btn_date.replace('selected, current check in date.', '')
-        #     # btn_date_ = el_.text
-
-        #     # time.sleep(0.1)
-        #     cr_date = datetime.strptime(flight_date, '%Y-%m-%d')
-        #     today_date = str(cr_date.strftime("%b %d, %Y"))
-        #     print("Expedia_date:  " + today_date)
-        #     if today_date[4] == '0':
-        #         i = 4
-        #         today_date = today_date[:i] + today_date[i + 1:]
-
-        #     if today_date in el_:
-        #         # print("today_date : " + str(today_date))
-        #         el.click()
-        #         time.sleep(1)
-        #         self.driver.find_element_by_xpath(
-        #             '//*[@id="wizard-flight-tab-oneway"]/div[2]/div[2]/div/div/div/div/div[2]/div/div[3]/button').click()
-        #         break
-        #     # except IndexError as ex:
-        #     #     pass
-
-        # # SEARCH BUTTON
-        # # click on search button
-        # search_click = ActionChains(self.driver)
-        # # print('click search... :D')
-        # search_click.click(
-        #     # self.driver.find_element_by_xpath('//*[@id="wizard-flight-pwa-1"]/div[3]/div/button')).perform()
-        #     self.driver.find_element_by_xpath('//*[@id="wizard-flight-pwa-1"]/div[4]/div/button')).perform()
-        # time.sleep(1)
-        # self.press_button()
-        # self.driver.quit()
-        # data_ = str(self.all_data_expedia).replace("'{", '{').replace("}'", '}').replace('type_', 'type')
-        # return data_
-        # # except Exception as ex:
-        # #     print(f"exception in expedia... {ex}")
-        # #     pass
-        # #     return '[]'
+        time.sleep(5)
+        ## CLICK search button
+        try:
+            self.btn_clicks('/html/body/app-root/app-header/header/div/app-topbar-first-step/div/div/div/div/div[2]/div[5]/ds-button/button')  
+        except:
+            print('except btn')
+            self.btn_clicks('//*[@class="ds-button ds-button--primary"]')
 
 
 if __name__ == '__main__':
