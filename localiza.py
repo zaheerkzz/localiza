@@ -12,6 +12,7 @@ from selenium.webdriver.chrome.options import Options as ChromeOptions
 from bs4 import BeautifulSoup as Soup
 import time
 import jsons
+import csv
 
 from datetime import datetime
 
@@ -50,7 +51,7 @@ class Arguments:
     options.add_experimental_option('prefs', prefs)
 
 
-class Hermes:
+class Localiza:
     origin = 'brasilia'
     destination = ''
     date_ = ''
@@ -68,9 +69,18 @@ class Hermes:
         self.driver = webdriver.Chrome(options=arguments.options, executable_path=arguments.DRIVER_PATH)
 
     def btn_clicks(self, xpath):
-        WebDriverWait(self.driver, 10).until(
-            EC.element_to_be_clickable(
-                (By.XPATH, xpath))).click()
+        try:
+            WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable(
+                    (By.XPATH, xpath))).click()
+        except:
+            time.sleep(2)
+            try:
+                WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable(
+                    (By.XPATH, xpath))).click()
+            except:
+                pass
     
     def select_date(self, top_id):
         # select date
@@ -79,7 +89,7 @@ class Hermes:
                 date_element = self.driver.find_elements(By.CLASS_NAME, 'mat-calendar-body-cell')
                 for el in date_element:
                     el_ = Soup(el.get_attribute('innerHTML'), 'html.parser')
-                    if el_.text.strip() == '25':
+                    if el_.text.strip() == '27':
                         el.click()
         except:
             pass
@@ -116,14 +126,14 @@ class Hermes:
         # select origin date
         self.select_date('cdk-overlay-1')
         #select origin time
-        self.select_time('mat-select-0-panel', '12:30')
+        self.select_time('mat-select-0-panel', '19:30')
 
         # DROP SET (DESTINATION SELECTION)
         
         # select destination date
         self.select_date('cdk-overlay-3')
         # # select destination time
-        self.select_time('cdk-overlay-4', '14:00')
+        self.select_time('cdk-overlay-4', '22:00')
 
         time.sleep(5)
         # select from enter button
@@ -141,12 +151,50 @@ class Hermes:
         ## CLICK search button
         try:
             self.btn_clicks('/html/body/app-root/app-header/header/div/app-topbar-first-step/div/div/div/div/div[2]/div[5]/ds-button/button')  
+            time.sleep(3)
+            self.parse_page()
         except:
             print('except btn')
             self.btn_clicks('//*[@class="ds-button ds-button--primary"]')
+            time.sleep(3)
+            self.parse_page()
+
+    def parse_page(self):
+
+        time.sleep(15)
+        parsed_data = Soup(self.driver.page_source, 'html.parser')
+        cars = parsed_data.find('ds-car-group-offers-list')
+        for car in cars.findAll('section', class_='list-card ng-star-inserted'):
+            car_name = car.find('div', class_='ds-car-group-text__group-name').text.strip()
+            car_image = car.find('img', class_='car-group-carousel__image ng-star-inserted')['src']
+            car_details = car.fin('img', class_='ds-car-group-text__model-name').text
+            offer_list = car.find('ds-offer-list')
+            print(len(offer_list.findAll('button')) )
+            if len(offer_list.findAll('button')) > 1:
+                promo_offer = offer_list.findAll('button')[0]
+                promo_price = promo_offer.find('p', class_='tarifas__preco').text
+
+                standard_offer = offer_list.findAll('button')[0]
+                standard_price = standard_offer.find('p', class_='tarifas__preco').text
+                print(promo_price)
+                print(standard_price)
+
+            print(car_name)
+            print(car_image)
+            print(car_details)
+
+        # filename = 'localiza.csv'
+        # header = ['name', 'address', 'price']
+        # data = [['Alex', 62, 80], ['Brad', 45, 56], ['Joey', 85, 98]]
+
+        # with open(filename, 'w', newline="") as file:
+        #     csvwriter = csv.writer(file) # 2. create a csvwriter object
+        #     csvwriter.writerow(header) # 4. write the header
+        #     csvwriter.writerows(data) # 5. write the rest of the data
+
 
 
 if __name__ == '__main__':
 
-   h = Hermes()
+   h = Localiza()
    h.get_page_source()
