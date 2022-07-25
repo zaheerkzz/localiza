@@ -1,5 +1,7 @@
 # selenium imports
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+
 # from seleniumwire import webdriver
 
 from selenium.webdriver.support.ui import WebDriverWait
@@ -19,6 +21,7 @@ from datetime import datetime
 # selenium setings
 class Arguments:
     DRIVER_PATH = 'driver/chromedriver'
+    service_obj = Service(DRIVER_PATH)
 
     options = ChromeOptions()
     # headless is set TRUE, it will stop browser from opening
@@ -52,12 +55,12 @@ class Arguments:
 
 
 class Localiza:
-    origin = 'brasilia'
-    destination = ''
-    date_ = ''
-    date2_ = ''
-    time_1 = ''
-    time_2 = ''
+    origin = 'brasil'
+    destination = 'brasil'
+    from_date = '26'
+    destination_date = '26'
+    from_time = '12:00'
+    destination_time = '14:00'
 
     domain = 'https://www.hermes.com'
 
@@ -66,30 +69,21 @@ class Localiza:
 
     def __init__(self):
         arguments = Arguments()
-        self.driver = webdriver.Chrome(options=arguments.options, executable_path=arguments.DRIVER_PATH)
+        self.driver = webdriver.Chrome(options=arguments.options, service=arguments.service_obj)
 
     def btn_clicks(self, xpath):
-        try:
-            WebDriverWait(self.driver, 10).until(
-                EC.element_to_be_clickable(
-                    (By.XPATH, xpath))).click()
-        except:
-            time.sleep(2)
-            try:
-                WebDriverWait(self.driver, 10).until(
-                EC.element_to_be_clickable(
-                    (By.XPATH, xpath))).click()
-            except:
-                pass
+        WebDriverWait(self.driver, 10).until(
+            EC.element_to_be_clickable(
+                (By.XPATH, xpath))).click()
     
-    def select_date(self, top_id):
+    def select_date(self, top_id, date_selected):
         # select date
         try:
             if WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, f'//*[@id="{top_id}"]'))):
                 date_element = self.driver.find_elements(By.CLASS_NAME, 'mat-calendar-body-cell')
                 for el in date_element:
                     el_ = Soup(el.get_attribute('innerHTML'), 'html.parser')
-                    if el_.text.strip() == '27':
+                    if el_.text.strip() == date_selected:
                         el.click()
         except:
             pass
@@ -117,30 +111,30 @@ class Localiza:
         # select from enter button
         self.btn_clicks('//*[@id="mat-input-1"]')
         # # enter origin in text field
-        self.driver.find_element(By.XPATH, '//*[@id="mat-input-1"]').send_keys("brasil")
+        self.driver.find_element(By.XPATH, '//*[@id="mat-input-1"]').send_keys(self.origin)
         # # select first in search
         try:
-            self.btn_clicks('//*[@id="cdk-overlay-9"]/div/div[1]/ds-place-select-list/div/ul/li[2]')
+            self.btn_clicks('//*[@id="cdk-overlay-1"]/div/div[1]/ds-place-select-list/div/ul/li[2]')
         except:
             self.btn_clicks('//*[@id="cdk-overlay-0"]/div/div[1]/ds-place-select-list/div/ul/li[2]')
         # select origin date
-        self.select_date('cdk-overlay-1')
+        self.select_date('cdk-overlay-1', self.from_date)
         #select origin time
-        self.select_time('mat-select-0-panel', '19:30')
+        self.select_time('mat-select-0-panel', self.from_time)
 
         # DROP SET (DESTINATION SELECTION)
         
         # select destination date
-        self.select_date('cdk-overlay-3')
+        self.select_date('cdk-overlay-3', self.destination_date)
         # # select destination time
-        self.select_time('cdk-overlay-4', '22:00')
+        self.select_time('cdk-overlay-4', self.destination_time)
 
         time.sleep(5)
         # select from enter button
         self.btn_clicks('//*[@id="mat-input-3"]')
 
         # enter destination in text field
-        self.driver.find_element(By.XPATH, '//*[@id="mat-input-3"]').send_keys("brasil")
+        self.driver.find_element(By.XPATH, '//*[@id="mat-input-3"]').send_keys(self.destination)
         # select first in search
         try:
             self.btn_clicks('//*[@id="cdk-overlay-4"]/div/div[1]/ds-place-select-list/div/ul/li[2]')
@@ -150,49 +144,61 @@ class Localiza:
         time.sleep(5)
         ## CLICK search button
         try:
-            self.btn_clicks('/html/body/app-root/app-header/header/div/app-topbar-first-step/div/div/div/div/div[2]/div[5]/ds-button/button')  
+            self.btn_clicks('//*[@class="ds-button ds-button--primary ds-button--md"]')  
             time.sleep(3)
             self.parse_page()
         except:
-            print('except btn')
-            self.btn_clicks('//*[@class="ds-button ds-button--primary"]')
+            try:
+                self.btn_clicks('//*[@class="ds-button ds-button--primary ds-button--md"]')
+            except:
+                pass
             time.sleep(3)
             self.parse_page()
 
-    def parse_page(self):
+    def scroll_page(self):
+        SCROLL_PAUSE_TIME = 0.5
+        # Get scroll height
+        last_height = self.driver.execute_script("return document.body.scrollHeight")
+        while True:
+            # print(f"{last_height}")
+            # Scroll down to bottom
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
+            # Wait to load page
+            time.sleep(SCROLL_PAUSE_TIME)
+
+            # Calculate new scroll height and compare with last scroll height
+            new_height = self.driver.execute_script("return document.body.scrollHeight")
+            if new_height == last_height:
+                break
+            last_height = new_height
+
+    def parse_page(self):
         time.sleep(15)
+        self.scroll_page()
+        time.sleep(3)
+        filename = 'localiza.csv'
+        header = ['name', 'address', 'price']
+
         parsed_data = Soup(self.driver.page_source, 'html.parser')
         cars = parsed_data.find('ds-car-group-offers-list')
-        for car in cars.findAll('section', class_='list-card ng-star-inserted'):
-            car_name = car.find('div', class_='ds-car-group-text__group-name').text.strip()
-            car_image = car.find('img', class_='car-group-carousel__image ng-star-inserted')['src']
-            car_details = car.fin('img', class_='ds-car-group-text__model-name').text
-            offer_list = car.find('ds-offer-list')
-            print(len(offer_list.findAll('button')) )
-            if len(offer_list.findAll('button')) > 1:
-                promo_offer = offer_list.findAll('button')[0]
-                promo_price = promo_offer.find('p', class_='tarifas__preco').text
 
-                standard_offer = offer_list.findAll('button')[0]
-                standard_price = standard_offer.find('p', class_='tarifas__preco').text
-                print(promo_price)
-                print(standard_price)
+        with open(filename, 'w', newline="") as file:
+            csvwriter = csv.writer(file) # 2. create a csvwriter object
+            csvwriter.writerow(header) # 4. write the header
 
-            print(car_name)
-            print(car_image)
-            print(car_details)
+            for car in cars.findAll('section', class_='list-card ng-star-inserted'):
+                try:
+                    car_name = car.find('div', class_='ds-car-group-text__group-name').text.strip()
+                    offer_list = car.find('ds-offer-list')
+                    if len(offer_list.findAll('button')) > 1:
+                        standard_offer = offer_list.findAll('button')[1]
+                        standard_price = standard_offer.find('p', class_='tarifas__preco').text
 
-        # filename = 'localiza.csv'
-        # header = ['name', 'address', 'price']
-        # data = [['Alex', 62, 80], ['Brad', 45, 56], ['Joey', 85, 98]]
-
-        # with open(filename, 'w', newline="") as file:
-        #     csvwriter = csv.writer(file) # 2. create a csvwriter object
-        #     csvwriter.writerow(header) # 4. write the header
-        #     csvwriter.writerows(data) # 5. write the rest of the data
-
-
+                        data = [[f'{car_name}', f'{standard_price}']]
+                        csvwriter.writerows(data)
+                except:
+                    pass
 
 if __name__ == '__main__':
 
